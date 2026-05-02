@@ -43,12 +43,12 @@ NOTE: Install **pre-commit** inside repository folder.
 
 ### What's different from development
 
-| | Development | Production |
-|---|---|---|
-| Server | Flask dev server | Gunicorn (`wsgi.py`) |
-| Debug mode | `True` | `False` |
-| Docker image | Full build | Multi-stage slim image |
-| Container user | root | `appuser` (non-root) |
+|                | Development      | Production             |
+| -------------- | ---------------- | ---------------------- |
+| Server         | Flask dev server | Gunicorn (`wsgi.py`)   |
+| Debug mode     | `True`           | `False`                |
+| Docker image   | Full build       | Multi-stage slim image |
+| Container user | root             | `appuser` (non-root)   |
 
 ### Gunicorn
 
@@ -75,6 +75,7 @@ The production server is configured in `src/configs/gunicorn_config.py`:
 **The example resource:** The boilerplate ships with a fully functional `note` resource that manages a simple list of named entries stored **in memory**. It demonstrates every layer of the architecture (Blueprint → Controller → Service → DAO) without requiring any external database. When you're ready to connect a real database, you only need to replace the DAO layer — everything else stays the same.
 
 **What it includes:**
+
 - **Layered architecture** enforced by convention: Blueprint → Controller → Service → DAO → In-Memory Store. Each layer has a single responsibility and only talks to the one directly below it.
 - **Pydantic v2** for request validation and data serialization, with a custom `exceptions_handler` decorator that automatically converts `ValidationError` into structured JSON API responses — no try/catch boilerplate in controllers.
 - **Custom exception hierarchy** (`ValidationAPIError`, `NotFoundAPIError`, `ConflictAPIError`, `InternalAPIError`) that produces consistent error responses across the entire API.
@@ -87,101 +88,6 @@ The production server is configured in `src/configs/gunicorn_config.py`:
 - **Startup initialization** layer (`src/startup/`) for seeding default data when the app boots.
 
 **How to use it:** Clone the repository, bring up the Docker environment, and replace the `note` resource (blueprint, controller, service, DAO, model, constants) with your own domain logic. The architecture, tooling, and error handling are already in place — you only write what's unique to your application.
-
-## API Endpoints
-
-The boilerplate ships with a fully functional `note` resource that manages named entries stored **in memory**. It seeds two default entries on startup and demonstrates the complete CRUD flow through the layered architecture.
-
-All endpoints are prefixed with `/api/v1/notes`.
-
-### Health
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/alive` | Returns API status and blueprint metadata |
-
-**Response 200:**
-```json
-{
-  "message": "I am Alive!",
-  "version_bp": "1.0.0",
-  "author": "Diego Libonati",
-  "name_bp": "Note"
-}
-```
-
-### Notes
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/` | Create a new note |
-| `GET` | `/` | Retrieve all notes |
-| `DELETE` | `/<id>` | Delete a note by its UUID |
-
-#### POST `/`
-
-**Request body:**
-```json
-{ "name": "my note" }
-```
-
-**Response 201:**
-```json
-{
-  "code": "SUCCESS_ADD_NOTE",
-  "message": "The note was successfully added.",
-  "data": {
-    "_id": "550e8400-e29b-41d4-a716-446655440000",
-    "created_at": "2026-05-02T12:00:00+00:00",
-    "name": "my note"
-  }
-}
-```
-
-**Response 409** — note with same name already exists:
-```json
-{ "code": "ALREADY_EXISTS_NOTE", "message": "Note already exists." }
-```
-
-**Response 400** — validation error (e.g., empty name):
-```json
-{
-  "code": "ERROR_PYDANTIC",
-  "message": "Pydantic error.",
-  "payload": { "details": [...] }
-}
-```
-
-#### GET `/`
-
-**Response 200:**
-```json
-{
-  "code": "SUCCESS_GET_NOTES",
-  "message": "Notes retrieved successfully.",
-  "data": [
-    { "_id": "...", "created_at": "...", "name": "hi" },
-    { "_id": "...", "created_at": "...", "name": "im Die" }
-  ]
-}
-```
-
-#### DELETE `/<id>`
-
-**Response 200:**
-```json
-{
-  "code": "SUCCESS_DELETE_NOTE",
-  "message": "The note was successfully deleted."
-}
-```
-
-**Response 404** — ID not found:
-```json
-{ "code": "NOT_FOUND_NOTE", "message": "No note found." }
-```
-
-> **Note on persistence:** The in-memory store resets every time the app restarts. To persist data, replace the `_store` list in `src/data_access/note_dao.py` with a real database client — the service and controller layers require zero changes.
 
 ## Technologies used
 
@@ -555,6 +461,109 @@ class ProductionConfig(DefaultConfig):
 ```
 
 **Benefit**: Common configuration in one place; environments only override what's different.
+
+## API Endpoints
+
+The boilerplate ships with a fully functional `note` resource that manages named entries stored **in memory**. It seeds two default entries on startup and demonstrates the complete CRUD flow through the layered architecture.
+
+All endpoints are prefixed with `/api/v1/notes`.
+
+### Health
+
+| Method | Path     | Description                               |
+| ------ | -------- | ----------------------------------------- |
+| `GET`  | `/alive` | Returns API status and blueprint metadata |
+
+**Response 200:**
+
+```json
+{
+  "message": "I am Alive!",
+  "version_bp": "1.0.0",
+  "author": "Diego Libonati",
+  "name_bp": "Note"
+}
+```
+
+### Notes
+
+| Method   | Path    | Description               |
+| -------- | ------- | ------------------------- |
+| `POST`   | `/`     | Create a new note         |
+| `GET`    | `/`     | Retrieve all notes        |
+| `DELETE` | `/<id>` | Delete a note by its UUID |
+
+#### POST `/`
+
+**Request body:**
+
+```json
+{ "name": "my note" }
+```
+
+**Response 201:**
+
+```json
+{
+  "code": "SUCCESS_ADD_NOTE",
+  "message": "The note was successfully added.",
+  "data": {
+    "_id": "550e8400-e29b-41d4-a716-446655440000",
+    "created_at": "2026-05-02T12:00:00+00:00",
+    "name": "my note"
+  }
+}
+```
+
+**Response 409** — note with same name already exists:
+
+```json
+{ "code": "ALREADY_EXISTS_NOTE", "message": "Note already exists." }
+```
+
+**Response 400** — validation error (e.g., empty name):
+
+```json
+{
+  "code": "ERROR_PYDANTIC",
+  "message": "Pydantic error.",
+  "payload": { "details": [...] }
+}
+```
+
+#### GET `/`
+
+**Response 200:**
+
+```json
+{
+  "code": "SUCCESS_GET_NOTES",
+  "message": "Notes retrieved successfully.",
+  "data": [
+    { "_id": "...", "created_at": "...", "name": "hi" },
+    { "_id": "...", "created_at": "...", "name": "im Die" }
+  ]
+}
+```
+
+#### DELETE `/<id>`
+
+**Response 200:**
+
+```json
+{
+  "code": "SUCCESS_DELETE_NOTE",
+  "message": "The note was successfully deleted."
+}
+```
+
+**Response 404** — ID not found:
+
+```json
+{ "code": "NOT_FOUND_NOTE", "message": "No note found." }
+```
+
+> **Note on persistence:** The in-memory store resets every time the app restarts. To persist data, replace the `_store` list in `src/data_access/note_dao.py` with a real database client — the service and controller layers require zero changes.
 
 ## Known Issues
 
