@@ -5,36 +5,34 @@ import pytest
 from src.configs.logger_config import setup_logger
 
 
+@pytest.mark.unit
 class TestSetupLogger:
-    @pytest.mark.unit
     def test_returns_logger_instance(self) -> None:
-        logger: logging.Logger = setup_logger("test_setup_logger_a")
-        assert isinstance(logger, logging.Logger)
-
-    @pytest.mark.unit
-    def test_logger_name_matches_argument(self) -> None:
-        logger: logging.Logger = setup_logger("my_test_logger_b")
-        assert logger.name == "my_test_logger_b"
-
-    @pytest.mark.unit
-    def test_logger_has_handlers(self) -> None:
-        logger: logging.Logger = setup_logger("handler_test_logger_c")
-        assert len(logger.handlers) > 0
-
-    @pytest.mark.unit
-    def test_logger_level_is_debug(self) -> None:
-        logger: logging.Logger = setup_logger("level_test_logger_d")
-        assert logger.level == logging.DEBUG
-
-    @pytest.mark.unit
-    def test_calling_twice_does_not_duplicate_handlers(self) -> None:
-        logger: logging.Logger = setup_logger("dedup_logger_e")
-        count: int = len(logger.handlers)
-        setup_logger("dedup_logger_e")
-        assert len(logger.handlers) == count
-
-    @pytest.mark.unit
-    def test_default_name_creates_valid_logger(self) -> None:
         logger: logging.Logger = setup_logger()
         assert isinstance(logger, logging.Logger)
-        assert logger.name == "python-flask-mongo-api-boilerplate"
+
+    def test_default_name_is_project_name(self) -> None:
+        logger: logging.Logger = setup_logger()
+        assert logger.name == "python-flask-api-boilerplate"
+
+    def test_custom_name_is_applied(self) -> None:
+        logger: logging.Logger = setup_logger("my-custom-logger")
+        assert logger.name == "my-custom-logger"
+
+    def test_logger_has_at_least_one_handler(self) -> None:
+        logger: logging.Logger = setup_logger("test-handler-logger")
+        assert len(logger.handlers) > 0
+
+    def test_logger_level_is_debug(self) -> None:
+        logger: logging.Logger = setup_logger("test-level-logger")
+        assert logger.level == logging.DEBUG
+
+    def test_calling_twice_does_not_duplicate_handlers(self) -> None:
+        logger: logging.Logger = setup_logger("test-no-dup-logger")
+        count_first: int = len(logger.handlers)
+        setup_logger("test-no-dup-logger")
+        assert len(logger.handlers) == count_first
+
+    def test_handler_is_stream_handler(self) -> None:
+        logger: logging.Logger = setup_logger("test-stream-handler-logger")
+        assert any(isinstance(h, logging.StreamHandler) for h in logger.handlers)

@@ -1,10 +1,12 @@
-# Python Flask Mongo Api Boilerplate
+# Python Flask Api Boilerplate
 
 ## Educational Purpose
 
 This project was created primarily for **educational and learning purposes**.  
 While it is well-structured and could technically be used in production, it is **not intended for commercialization**.  
 The main goal is to explore and demonstrate best practices, patterns, and technologies in software development.
+
+> **Want a MongoDB version?** Check out [`python-flask-mongo-api-boilerplate`](https://github.com/DiegoLibonati/python-flask-mongo-api-boilerplate) — the same boilerplate adapted to work with MongoDB and PyMongo.
 
 ## Getting Started for Development
 
@@ -39,8 +41,6 @@ NOTE: Install **pre-commit** inside repository folder.
 3. Go to the repository folder and execute: `docker-compose -f prod.docker-compose.yml build --no-cache` in the terminal
 4. Once built, execute: `docker-compose -f prod.docker-compose.yml up -d` in the terminal
 
-NOTE: The API server will only start after MongoDB passes its health check. The `restart: always` policy ensures both containers come back up automatically after a crash or reboot.
-
 ### What's different from development
 
 | | Development | Production |
@@ -49,8 +49,6 @@ NOTE: The API server will only start after MongoDB passes its health check. The 
 | Debug mode | `True` | `False` |
 | Docker image | Full build | Multi-stage slim image |
 | Container user | root | `appuser` (non-root) |
-| MongoDB data | Ephemeral | Persistent volume (`db-data`) |
-| MongoDB port | Exposed to host | Internal network only |
 
 ### Gunicorn
 
@@ -64,38 +62,132 @@ The production server is configured in `src/configs/gunicorn_config.py`:
 ### Security considerations before deploying
 
 - Run `pip-audit -r requirements.txt` to check for known vulnerabilities in production dependencies
-- Replace the default MongoDB credentials in `.env` with strong, unique values
 - The production Dockerfile runs the app as a non-root user (`appuser`) — do not override this
 
 ## Description
 
-**Python Flask Mongo Api Boilerplate** is a production-ready boilerplate for building REST APIs with **Flask** and **MongoDB**, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project.
+**Python Flask Api Boilerplate** is a production-ready starting point for building REST APIs with **Flask**, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project.
 
-**What it is:** A starting point — not a framework — for developers who want to spin up a Flask + MongoDB API without rebuilding the same infrastructure from scratch each time. Every layer, pattern, and tooling choice is already wired together and working.
+**What it is:** A starting point — not a framework — for developers who want to spin up a Flask API without rebuilding the same infrastructure from scratch each time. Every layer, pattern, and tooling choice is already wired together and working.
 
-**The problem it solves:** Starting a Flask API from zero means making the same decisions repeatedly: how to structure layers, how to handle errors globally, how to validate input, how to configure environments, how to connect to MongoDB cleanly, how to set up Docker, linting, tests, and security audits. This template makes all those decisions once, so you can focus on building the actual product.
+**The problem it solves:** Starting a Flask API from zero means making the same decisions repeatedly: how to structure layers, how to handle errors globally, how to validate input, how to configure environments, how to set up Docker, linting, tests, and security audits. This boilerplate makes all those decisions once, so you can focus on building the actual product.
+
+**The example resource:** The boilerplate ships with a fully functional `note` resource that manages a simple list of named entries stored **in memory**. It demonstrates every layer of the architecture (Blueprint → Controller → Service → DAO) without requiring any external database. When you're ready to connect a real database, you only need to replace the DAO layer — everything else stays the same.
 
 **What it includes:**
-- **Layered architecture** enforced by convention: Blueprint → Controller → Service → DAO → MongoDB. Each layer has a single responsibility and only talks to the one directly below it.
-- **Pydantic v2** for request validation and data serialization, with a custom `exceptions_handler` decorator that automatically converts `ValidationError` and `PyMongoError` into structured JSON API responses — no try/catch boilerplate in controllers.
+- **Layered architecture** enforced by convention: Blueprint → Controller → Service → DAO → In-Memory Store. Each layer has a single responsibility and only talks to the one directly below it.
+- **Pydantic v2** for request validation and data serialization, with a custom `exceptions_handler` decorator that automatically converts `ValidationError` into structured JSON API responses — no try/catch boilerplate in controllers.
 - **Custom exception hierarchy** (`ValidationAPIError`, `NotFoundAPIError`, `ConflictAPIError`, `InternalAPIError`) that produces consistent error responses across the entire API.
-- **MongoDB Singleton** via `mongo_config.py` — a single shared connection instance across all modules, initialized through Flask's app context.
 - **Environment-based configuration** using a `DefaultConfig` base class extended by `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig`, loaded dynamically by the app factory.
-- **Docker** setup for development and production, with a separate `docker-compose.test.yml` that spins up a real MongoDB container for integration tests.
+- **Docker** setup for development and production, with a multi-stage Dockerfile for slim production images.
 - **Gunicorn** as the production WSGI server, configured via `gunicorn_config.py`.
 - **Ruff** for fast linting and formatting, enforced automatically via **pre-commit** hooks on every commit.
 - **pip-audit** integration for scanning production dependencies against known vulnerability databases.
-- **pytest** configured with real database connections (no mocks), organized to mirror the `src/` structure — tests run against an actual MongoDB instance in Docker.
+- **pytest** configured and organized to mirror the `src/` structure.
 - **Startup initialization** layer (`src/startup/`) for seeding default data when the app boots.
 
-**How to use it:** Clone the repository, bring up the Docker environment, and replace the `template` resource (blueprint, controller, service, DAO, model, constants) with your own domain logic. The architecture, tooling, error handling, and test setup are already in place — you only write what's unique to your application.
+**How to use it:** Clone the repository, bring up the Docker environment, and replace the `note` resource (blueprint, controller, service, DAO, model, constants) with your own domain logic. The architecture, tooling, and error handling are already in place — you only write what's unique to your application.
+
+## API Endpoints
+
+The boilerplate ships with a fully functional `note` resource that manages named entries stored **in memory**. It seeds two default entries on startup and demonstrates the complete CRUD flow through the layered architecture.
+
+All endpoints are prefixed with `/api/v1/notes`.
+
+### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/alive` | Returns API status and blueprint metadata |
+
+**Response 200:**
+```json
+{
+  "message": "I am Alive!",
+  "version_bp": "1.0.0",
+  "author": "Diego Libonati",
+  "name_bp": "Note"
+}
+```
+
+### Notes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/` | Create a new note |
+| `GET` | `/` | Retrieve all notes |
+| `DELETE` | `/<id>` | Delete a note by its UUID |
+
+#### POST `/`
+
+**Request body:**
+```json
+{ "name": "my note" }
+```
+
+**Response 201:**
+```json
+{
+  "code": "SUCCESS_ADD_NOTE",
+  "message": "The note was successfully added.",
+  "data": {
+    "_id": "550e8400-e29b-41d4-a716-446655440000",
+    "created_at": "2026-05-02T12:00:00+00:00",
+    "name": "my note"
+  }
+}
+```
+
+**Response 409** — note with same name already exists:
+```json
+{ "code": "ALREADY_EXISTS_NOTE", "message": "Note already exists." }
+```
+
+**Response 400** — validation error (e.g., empty name):
+```json
+{
+  "code": "ERROR_PYDANTIC",
+  "message": "Pydantic error.",
+  "payload": { "details": [...] }
+}
+```
+
+#### GET `/`
+
+**Response 200:**
+```json
+{
+  "code": "SUCCESS_GET_NOTES",
+  "message": "Notes retrieved successfully.",
+  "data": [
+    { "_id": "...", "created_at": "...", "name": "hi" },
+    { "_id": "...", "created_at": "...", "name": "im Die" }
+  ]
+}
+```
+
+#### DELETE `/<id>`
+
+**Response 200:**
+```json
+{
+  "code": "SUCCESS_DELETE_NOTE",
+  "message": "The note was successfully deleted."
+}
+```
+
+**Response 404** — ID not found:
+```json
+{ "code": "NOT_FOUND_NOTE", "message": "No note found." }
+```
+
+> **Note on persistence:** The in-memory store resets every time the app restarts. To persist data, replace the `_store` list in `src/data_access/note_dao.py` with a real database client — the service and controller layers require zero changes.
 
 ## Technologies used
 
 1. Python -> Flask
 2. Docker
-3. MongoDB -> PyMongo
-4. Gunicorn
+3. Gunicorn
 
 ## Libraries used
 
@@ -103,9 +195,7 @@ The production server is configured in `src/configs/gunicorn_config.py`:
 
 ```
 flask==3.1.3
-pymongo==4.16.0
 pydantic==2.11.9
-werkzeug==3.1.6
 gunicorn==23.0.0
 ```
 
@@ -129,7 +219,7 @@ pytest-xdist==3.5.0
 
 ## Portfolio Link
 
-[`https://www.diegolibonati.com.ar/#/project/python-flask-mongo-api-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-mongo-api-boilerplate)
+[`https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate)
 
 ## Testing
 
@@ -152,84 +242,58 @@ You can check your dependencies for known vulnerabilities using **pip-audit**.
 ## Env Keys
 
 1. `TZ`: Refers to the timezone setting for the container.
-2. `MONGO_HOST`: Specifies the hostname or address where the MongoDB server is located. In this case, `host.docker.internal` allows a Docker container to connect to the host machine.
-3. `MONGO_PORT`: Defines the port on which the MongoDB server is listening for connections. The default MongoDB port is `27017`.
-4. `MONGO_USER`: Indicates the username for authenticating with the MongoDB database.
-5. `MONGO_PASS`: Contains the password associated with the user specified in `MONGO_USER` for authentication.
-6. `MONGO_DB_NAME`: Specifies the name of the database to which the application will connect within the MongoDB server.
-7. `MONGO_AUTH_SOURCE`: Defines the database where the user credentials will be verified. Typically set to `admin` when the credentials were created in that database.
-8. `HOST`: Refers to the network interface where the backend API listens (e.g., 0.0.0.0 to allow external connections).
-9. `PORT`: Refers to the port on which the backend API is exposed.
-10. `ME_BASICAUTH_USERNAME`: Username for the Mongo Express web UI basic authentication.
-11. `ME_BASICAUTH_PASSWORD`: Password for the Mongo Express web UI basic authentication.
+2. `HOST`: Refers to the network interface where the backend API listens (e.g., 0.0.0.0 to allow external connections).
+3. `PORT`: Refers to the port on which the backend API is exposed.
 
 ```ts
 TZ=America/Argentina/Buenos_Aires
 
-MONGO_HOST=boilerplate-db
-MONGO_PORT=27017
-MONGO_USER=admin
-MONGO_PASS=secret123
-MONGO_DB_NAME=boilerplate_db
-MONGO_AUTH_SOURCE=admin
-
 HOST=0.0.0.0
 PORT=5050
-
-ME_BASICAUTH_USERNAME=admin
-ME_BASICAUTH_PASSWORD=admin123
 ```
 
 ## Project Structure
 
 ```
-python-flask-mongo-api-boilerplate/
+python-flask-api-boilerplate/
 ├── src/
 │   ├── blueprints/
 │   │   ├── routes.py
 │   │   └── v1/
-│   │       └── template_bp.py
+│   │       └── note_bp.py
 │   ├── configs/
-│   │   ├── __init__.py
 │   │   ├── default_config.py
 │   │   ├── development_config.py
 │   │   ├── production_config.py
 │   │   ├── testing_config.py
 │   │   ├── gunicorn_config.py
-│   │   ├── logger_config.py
-│   │   └── mongo_config.py
+│   │   └── logger_config.py
 │   ├── controllers/
-│   │   └── template_controller.py
+│   │   └── note_controller.py
 │   ├── services/
-│   │   └── template_service.py
+│   │   └── note_service.py
 │   ├── data_access/
-│   │   └── template_dao.py
+│   │   └── note_dao.py
 │   ├── models/
-│   │   └── template_model.py
+│   │   └── note_model.py
 │   ├── constants/
 │   │   ├── codes.py
 │   │   ├── messages.py
 │   │   └── defaults.py
 │   ├── startup/
-│   │   └── init_templates.py
+│   │   └── init_notes.py
 │   └── utils/
 │       ├── exceptions.py
 │       ├── exceptions_handler.py
 │       └── helpers.py
-├── test/
-│   ├── conftest.py
-│   ├── test_blueprints/
-│   ├── test_controllers/
-│   ├── test_services/
-│   ├── test_data_access/
-│   ├── test_models/
-│   ├── test_startup/
-│   └── test_utils/
+├── tests/
+│   └── __init__.py
 ├── app.py
 ├── wsgi.py
 ├── Dockerfile.development
 ├── Dockerfile.production
-├── docker-compose.test.yml
+├── dev.docker-compose.yml
+├── prod.docker-compose.yml
 ├── requirements.txt
 ├── requirements.test.txt
 ├── requirements.dev.txt
@@ -242,25 +306,23 @@ python-flask-mongo-api-boilerplate/
 ```
 
 1. `src` -> Root directory of the source code. Contains the full application logic following a **layered architecture** pattern.
-2. `configs` -> Contains all **configuration classes** organized by environment (development, production, testing). Includes database connection, logging setup, and server settings.
+2. `configs` -> Contains all **configuration classes** organized by environment (development, production, testing). Includes logging setup and server settings.
 3. `blueprints` -> Defines **API routes and endpoints**. Organized by API version (`v1/`) to support versioning.
 4. `controllers` -> Handles **HTTP request/response logic**. Receives requests from blueprints and delegates business logic to services.
-5. `services` -> Contains **business logic and rules**. Validates data, enforces constraints, and orchestrates operations between controllers and data access layer.
-6. `data_access` -> Implements the **Repository/DAO pattern**. Abstracts all database operations, making it easy to switch databases without affecting other layers.
+5. `services` -> Contains **business logic and rules**. Validates data, enforces constraints, and orchestrates operations between controllers and the data access layer.
+6. `data_access` -> Implements the **Repository/DAO pattern**. Abstracts all data operations, making it easy to swap the underlying storage (in-memory, SQL, NoSQL) without affecting other layers.
 7. `models` -> Defines **Pydantic models** for data validation and serialization.
-8. `constants` -> Holds **static values** like error codes, user messages, and default configurations.
+8. `constants` -> Holds **static values** like error codes, user messages, and default data.
 9. `startup` -> Contains **initialization logic** executed when the application starts, such as seeding default data.
 10. `utils` -> Contains **shared utilities** including custom exceptions, error handling decorators, and helper functions.
-11. `test` -> Contains **integration tests** organized to mirror the `src/` structure. Uses real database connections via Docker.
-12. `conftest.py` -> Defines **pytest fixtures** for database setup, app initialization, and test data.
-13. `app.py` -> The **application factory**. Creates and configures the Flask app instance using the Factory pattern.
-14. `wsgi.py` -> The **production entry point** for WSGI servers like Gunicorn.
-15. `Dockerfile.*` -> Docker configurations for **development and production** environments.
-16. `docker-compose.test.yml` -> Defines the **test environment** with MongoDB container for integration testing.
-17. `requirements.txt` -> Lists **production dependencies**.
-18. `requirements.test.txt` -> Lists **testing dependencies** (pytest, pytest-env, etc.).
-19. `requirements.test.txt` -> Lists **development dependencies** (pre-commit, pip-audit, etc.).
-20. `pyproject.toml` -> **Unified project configuration** for pytest, ruff, and project metadata.
+11. `tests` -> Contains **tests** organized to mirror the `src/` structure.
+12. `app.py` -> The **application factory**. Creates and configures the Flask app instance using the Factory pattern.
+13. `wsgi.py` -> The **production entry point** for WSGI servers like Gunicorn.
+14. `Dockerfile.*` -> Docker configurations for **development and production** environments.
+15. `requirements.txt` -> Lists **production dependencies**.
+16. `requirements.test.txt` -> Lists **testing dependencies** (pytest, pytest-env, etc.).
+17. `requirements.dev.txt` -> Lists **development dependencies** (pre-commit, pip-audit, etc.).
+18. `pyproject.toml` -> **Unified project configuration** for pytest, ruff, and project metadata.
 
 ## Architecture & Design Patterns
 
@@ -286,13 +348,13 @@ This project follows a **Layered Architecture** pattern, organizing code into di
 ┌─────────────────────────────────────────────────────────────┐
 │                     DATA ACCESS LAYER                       │
 │                         (DAO)                               │
-│            Abstracts database operations                    │
+│            Abstracts data storage operations                │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                        DATABASE                             │
-│                        (MongoDB)                            │
+│                       DATA STORE                            │
+│                  (In-Memory / Database)                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -301,7 +363,7 @@ This project follows a **Layered Architecture** pattern, organizing code into di
 - **Separation of Concerns**: Each layer has a single responsibility
 - **Testability**: Layers can be tested independently
 - **Maintainability**: Changes in one layer don't affect others
-- **Flexibility**: Easy to swap implementations (e.g., change database)
+- **Flexibility**: Easy to swap implementations (e.g., replace the in-memory store with a real database by only changing the DAO layer)
 
 #### Request Flow Example
 
@@ -309,19 +371,19 @@ This project follows a **Layered Architecture** pattern, organizing code into di
 HTTP Request
     │
     ▼
-Blueprint (routes.py)          →  Defines endpoint URL
+Blueprint (routes.py)           →  Defines endpoint URL
     │
     ▼
-Controller (template_controller.py)  →  Handles request/response
+Controller (note_controller.py) →  Handles request/response
     │
     ▼
-Service (template_service.py)  →  Applies business rules
+Service (note_service.py)       →  Applies business rules
     │
     ▼
-DAO (template_dao.py)          →  Executes database query
+DAO (note_dao.py)               →  Executes data operation
     │
     ▼
-MongoDB                        →  Stores/retrieves data
+In-Memory Store (_store list)   →  Stores/retrieves data
 ```
 
 ### Design Patterns
@@ -339,9 +401,8 @@ def create_app(config_name="development") -> Flask:
     config_module = importlib.import_module(f"src.configs.{config_name}_config")
     app.config.from_object(config_module.__dict__[f"{config_name.capitalize()}Config"])
 
-    init_mongo(app)
     register_routes(app)
-    add_default_templates()
+    add_default_notes()
 
     return app
 
@@ -356,68 +417,62 @@ app = create_app("production")   # Production environment
 
 **Purpose**: Abstracts data access logic, providing a clean API for data operations. The business layer doesn't know how data is stored.
 
-**Location**: `src/data_access/template_dao.py`
+**Location**: `src/data_access/note_dao.py`
 
 ```python
-class TemplateDAO:
+_store: list[dict[str, Any]] = []
+
+class NoteDAO:
     @staticmethod
-    def insert_one(template: dict[str, Any]) -> InsertOneResult:
-        return mongo.db.templates.insert_one(template)
+    def insert_one(note: dict[str, Any]) -> dict[str, Any]:
+        entry = {"_id": str(uuid.uuid4()), "created_at": ..., **note}
+        _store.append(entry)
+        return entry
 
     @staticmethod
     def find() -> list[dict[str, Any]]:
-        return TemplateDAO.parse_templates(list(mongo.db.templates.find()))
+        return list(_store)
 
     @staticmethod
-    def find_one_by_id(_id: ObjectId) -> dict[str, Any] | None:
-        return TemplateDAO.parse_template(mongo.db.templates.find_one({"_id": ObjectId(_id)}))
+    def find_one_by_id(_id: str) -> dict[str, Any] | None:
+        return next((n for n in _store if n["_id"] == _id), None)
 
     @staticmethod
-    def find_one_by_name(name: str) -> dict[str, Any] | None:
-        return TemplateDAO.parse_template(
-            mongo.db.templates.find_one({"name": {"$regex": f"^{name}$", "$options": "i"}})
-        )
-
-    @staticmethod
-    def delete_one_by_id(_id: ObjectId) -> DeleteResult:
-        return mongo.db.templates.delete_one({"_id": ObjectId(_id)})
+    def delete_one_by_id(_id: str) -> bool:
+        ...
 ```
 
-**Benefit**: If you switch from MongoDB to PostgreSQL, only the DAO layer needs to change.
+**Benefit**: If you switch from in-memory to a real database, only the DAO layer changes.
 
 #### 3. Service Layer Pattern
 
 **Purpose**: Encapsulates business logic in a dedicated layer. Controllers stay thin, and business rules are centralized.
 
-**Location**: `src/services/template_service.py`
+**Location**: `src/services/note_service.py`
 
 ```python
-class TemplateService:
+class NoteService:
     @staticmethod
-    def add_template(template: TemplateModel) -> InsertOneResult:
+    def add_note(note: NoteModel) -> dict[str, Any]:
         # Business rule: Check for duplicates
-        existing = TemplateDAO.find_one_by_name(template.name)
+        existing = NoteDAO.find_one_by_name(note.name)
         if existing:
             raise ConflictAPIError(
-                code=CODE_ERROR_TEMPLATE_ALREADY_EXISTS,
-                message=MESSAGE_ERROR_TEMPLATE_ALREADY_EXISTS,
+                code=CODE_ALREADY_EXISTS_NOTE,
+                message=MESSAGE_ALREADY_EXISTS_NOTE,
             )
-        return TemplateDAO.insert_one(template.model_dump())
+        return NoteDAO.insert_one(note.model_dump())
 
     @staticmethod
-    def get_all_templates() -> list[dict[str, Any]]:
-        return TemplateDAO.find()
-
-    @staticmethod
-    def delete_template_by_id(_id: ObjectId) -> DeleteResult:
+    def delete_note_by_id(_id: str) -> bool:
         # Business rule: Verify existence before deletion
-        existing = TemplateDAO.find_one_by_id(_id)
+        existing = NoteDAO.find_one_by_id(_id)
         if not existing:
             raise NotFoundAPIError(
-                code=CODE_NOT_FOUND_TEMPLATE,
-                message=MESSAGE_NOT_FOUND_TEMPLATE
+                code=CODE_NOT_FOUND_NOTE,
+                message=MESSAGE_NOT_FOUND_NOTE,
             )
-        return TemplateDAO.delete_one_by_id(_id)
+        return NoteDAO.delete_one_by_id(_id)
 ```
 
 **Benefit**: Business rules are in one place, not scattered across controllers.
@@ -442,79 +497,31 @@ def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
                 payload={"details": e.errors()},
             )
 
-        except PyMongoError as e:
-            raise InternalAPIError(
-                code=CODE_ERROR_DATABASE,
-                message=MESSAGE_ERROR_DATABASE,
-            )
-
     return wrapper
 ```
 
 **Usage in Controller**:
 
 ```python
-@handle_exceptions
+@exceptions_handler
 def alive() -> Response:
-    response = {
-        "message": "I am Alive!",
-        "version_bp": "2.0.0",
-    }
+    response = {"message": "I am Alive!"}
     return jsonify(response), 200
 
 
-@handle_exceptions
-def create_template() -> Response:
-    # If ValidationError or PyMongoError occurs,
-    # it's automatically caught and converted to an API error
-    data = request.get_json()
-    template = TemplateModel(**data)
-    TemplateService.add_template(template)
-    return jsonify({"message": "Created"}), 201
+@exceptions_handler
+def create_note() -> Response:
+    # If ValidationError occurs, it's automatically caught and
+    # converted to a structured API error response
+    body = request.get_json() or {}
+    note = NoteModel(**body)
+    data = NoteService.add_note(note)
+    return jsonify({"code": CODE_SUCCESS_ADD_NOTE, "message": MESSAGE_SUCCESS_ADD_NOTE, "data": data}), 201
 ```
 
 **Benefit**: No need to repeat try/catch blocks in every controller.
 
-#### 5. Singleton Pattern
-
-**Purpose**: Ensures only one instance of a class exists throughout the application.
-
-**Location**: `src/configs/mongo_config.py`
-
-```python
-class Mongo:
-    def __init__(self):
-        self.client: MongoClient | None = None
-        self.db: Database | None = None
-
-    def init_app(self, app: Flask) -> None:
-        mongo_uri = app.config["MONGO_URI"]
-        db_name = app.config["MONGO_DB_NAME"]
-
-        self.client = MongoClient(mongo_uri)
-        self.db = self.client[db_name]
-
-
-# Single instance used across the entire application
-mongo = Mongo()
-
-
-def init_mongo(app: Flask) -> None:
-    mongo.init_app(app)
-```
-
-**Usage**:
-
-```python
-from src.configs.mongo_config import mongo
-
-# Always the same instance
-mongo.db.templates.find()
-```
-
-**Benefit**: One database connection shared across all modules, avoiding connection overhead.
-
-#### 6. Template Method Pattern
+#### 5. Template Method Pattern
 
 **Purpose**: Defines a base structure that subclasses can customize by overriding specific parts.
 
@@ -524,13 +531,8 @@ mongo.db.templates.find()
 # src/configs/default_config.py - Base template
 class DefaultConfig:
     TZ = os.getenv("TZ", "America/Argentina/Buenos_Aires")
-
-    MONGO_HOST = os.getenv("MONGO_HOST", "host.docker.internal")
-    MONGO_PORT = os.getenv("MONGO_PORT", 27017)
-    MONGO_USER = os.getenv("MONGO_USER", "admin")
-    MONGO_PASS = os.getenv("MONGO_PASS", "secret123")
-    MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "boilerplate_db")
-
+    HOST = os.getenv("HOST", "0.0.0.0")
+    PORT = os.getenv("PORT", 5000)
     DEBUG = False
     TESTING = False
 
@@ -544,7 +546,6 @@ class DevelopmentConfig(DefaultConfig):
 class TestingConfig(DefaultConfig):
     TESTING = True
     DEBUG = True
-    MONGO_DB_NAME = os.getenv("MONGO_DB_NAME", "test_db")
 
 
 # src/configs/production_config.py - Customizes for production

@@ -3,13 +3,12 @@ from functools import wraps
 from typing import TypeVar
 
 from pydantic import ValidationError
-from pymongo.errors import PyMongoError
 from typing_extensions import ParamSpec
 
 from src.configs.logger_config import setup_logger
-from src.constants.codes import CODE_ERROR_DATABASE, CODE_ERROR_PYDANTIC
-from src.constants.messages import MESSAGE_ERROR_DATABASE, MESSAGE_ERROR_PYDANTIC
-from src.utils.exceptions import InternalAPIError, ValidationAPIError
+from src.constants.codes import CODE_ERROR_PYDANTIC
+from src.constants.messages import MESSAGE_ERROR_PYDANTIC
+from src.utils.exceptions import ValidationAPIError
 
 logger = setup_logger(__name__)
 
@@ -28,12 +27,6 @@ def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
                 code=CODE_ERROR_PYDANTIC,
                 message=MESSAGE_ERROR_PYDANTIC,
                 payload={"details": e.errors()},
-            )
-
-        except PyMongoError:
-            raise InternalAPIError(
-                code=CODE_ERROR_DATABASE,
-                message=MESSAGE_ERROR_DATABASE,
             )
 
     return wrapper

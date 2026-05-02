@@ -1,7 +1,7 @@
 [project]
-name = "python-flask-mongo-api-boilerplate"
+name = "python-flask-api-boilerplate"
 version = "1.0.0"
-description = "Python Flask Mongo Api Boilerplate is a production-ready boilerplate for building REST APIs with Flask and MongoDB, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project."
+description = "Python Flask Api Boilerplate is a production-ready starting point for building REST APIs with Flask, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project."
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
@@ -22,17 +22,7 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
 ]
-env = [
-    "TEST_MONGO_HOST=localhost",
-    "TEST_MONGO_PORT=27018",
-    "TEST_MONGO_USER=admin",
-    "TEST_MONGO_PASS=secret123",
-    "TEST_MONGO_DB=test_db",
-    "D:MONGO_URI=mongodb://admin:secret123@localhost:27018/test_db?authSource=admin",
-    "MONGO_DB_NAME=test_db",
-    "MONGO_HOST=localhost",
-    "MONGO_PORT=27018",
-]
+env = []
 
 
 [tool.ruff]

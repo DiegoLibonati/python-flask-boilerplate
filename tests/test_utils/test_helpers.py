@@ -3,73 +3,52 @@ import pytest
 from src.utils.helpers import is_positive_integer
 
 
+@pytest.mark.unit
 class TestIsPositiveInteger:
-    @pytest.mark.unit
     def test_returns_true_for_positive_integer(self) -> None:
-        result: bool = is_positive_integer(1)
-        assert result is True
+        assert is_positive_integer(1) is True
 
-    @pytest.mark.unit
     def test_returns_true_for_large_positive_integer(self) -> None:
-        result: bool = is_positive_integer(1000000)
-        assert result is True
+        assert is_positive_integer(1000) is True
 
-    @pytest.mark.unit
-    def test_returns_false_for_zero(self) -> None:
-        result: bool = is_positive_integer(0)
-        assert result is False
+    def test_returns_false_for_zero_integer(self) -> None:
+        assert is_positive_integer(0) is False
 
-    @pytest.mark.unit
     def test_returns_false_for_negative_integer(self) -> None:
-        result: bool = is_positive_integer(-1)
-        assert result is False
+        assert is_positive_integer(-1) is False
 
-    @pytest.mark.unit
-    def test_returns_false_for_bool_true(self) -> None:
-        result: bool = is_positive_integer(True)
-        assert result is False
+    def test_returns_true_for_positive_digit_string(self) -> None:
+        assert is_positive_integer("5") is True
 
-    @pytest.mark.unit
-    def test_returns_false_for_bool_false(self) -> None:
-        result: bool = is_positive_integer(False)
-        assert result is False
+    def test_returns_true_for_large_positive_digit_string(self) -> None:
+        assert is_positive_integer("999") is True
 
-    @pytest.mark.unit
-    def test_returns_true_for_digit_string(self) -> None:
-        result: bool = is_positive_integer("5")
-        assert result is True
-
-    @pytest.mark.unit
     def test_returns_false_for_zero_string(self) -> None:
-        result: bool = is_positive_integer("0")
-        assert result is False
+        assert is_positive_integer("0") is False
 
-    @pytest.mark.unit
     def test_returns_false_for_non_digit_string(self) -> None:
-        result: bool = is_positive_integer("abc")
-        assert result is False
+        assert is_positive_integer("abc") is False
 
-    @pytest.mark.unit
-    def test_returns_false_for_empty_string(self) -> None:
-        result: bool = is_positive_integer("")
-        assert result is False
+    def test_returns_false_for_negative_number_string(self) -> None:
+        assert is_positive_integer("-1") is False
 
-    @pytest.mark.unit
     def test_returns_false_for_float(self) -> None:
-        result: bool = is_positive_integer(1.5)
-        assert result is False
+        assert is_positive_integer(1.5) is False
 
-    @pytest.mark.unit
     def test_returns_false_for_none(self) -> None:
-        result: bool = is_positive_integer(None)
-        assert result is False
+        assert is_positive_integer(None) is False
 
-    @pytest.mark.unit
+    def test_returns_false_for_true_boolean(self) -> None:
+        assert is_positive_integer(True) is False
+
+    def test_returns_false_for_false_boolean(self) -> None:
+        assert is_positive_integer(False) is False
+
+    def test_returns_false_for_empty_string(self) -> None:
+        assert is_positive_integer("") is False
+
     def test_returns_false_for_list(self) -> None:
-        result: bool = is_positive_integer([1])
-        assert result is False
+        assert is_positive_integer([1]) is False
 
-    @pytest.mark.unit
-    def test_returns_false_for_negative_string(self) -> None:
-        result: bool = is_positive_integer("-1")
-        assert result is False
+    def test_returns_false_for_dict(self) -> None:
+        assert is_positive_integer({"value": 1}) is False

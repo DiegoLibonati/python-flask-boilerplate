@@ -4,8 +4,7 @@ from flask import Flask
 
 from src.blueprints.routes import register_routes
 from src.configs.logger_config import setup_logger
-from src.configs.mongo_config import init_mongo
-from src.startup.init_templates import add_default_templates
+from src.startup.init_notes import add_default_notes
 from src.utils.exceptions import BaseAPIError
 
 logger = setup_logger()
@@ -21,14 +20,11 @@ def create_app(config_name="development") -> None:
     def handle_api_error(error: BaseAPIError):
         return error.flask_response()
 
-    init_mongo(app)
-    logger.info("MongoDB initialized successfully.")
-
     register_routes(app)
     logger.info("Routes initialized successfully.")
 
-    add_default_templates()
-    logger.info("Default templates initialized successfully.")
+    add_default_notes()
+    logger.info("Default notes seeded.")
 
     return app
 
