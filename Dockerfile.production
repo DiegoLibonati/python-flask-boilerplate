@@ -1,0 +1,35 @@
+FROM python:3.11-slim AS builder
+
+WORKDIR /home/app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+
+FROM python:3.11-slim
+
+WORKDIR /home/app
+
+ENV PYTHONPATH="/home/app"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN useradd -m appuser
+
+COPY --from=builder /install /usr/local
+COPY --chown=appuser:appuser . .
+
+USER appuser
+
+EXPOSE 5050
+
+CMD ["gunicorn", "-c", "src/configs/gunicorn_config.py", "wsgi:app"]

@@ -1,0 +1,41 @@
+services:
+  boilerplate-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    restart: always
+    env_file:
+      - ./.env
+    depends_on:
+      boilerplate-db:
+        condition: service_healthy
+    ports:
+      - "5050:5050"
+    networks:
+      - boilerplate-net
+
+  boilerplate-db:
+    image: mongo:7.0
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASS}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    volumes:
+      - db-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - boilerplate-net
+
+volumes:
+  db-data:
+    driver: local
+
+networks:
+  boilerplate-net:
+    driver: bridge
