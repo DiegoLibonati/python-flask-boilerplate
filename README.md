@@ -8,62 +8,6 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 
 > **Want a MongoDB version?** Check out [`python-flask-mongo-api-boilerplate`](https://github.com/DiegoLibonati/python-flask-mongo-api-boilerplate) — the same boilerplate adapted to work with MongoDB and PyMongo.
 
-## Getting Started for Development
-
-1. Clone the repository
-2. Go to the repository folder and execute: `docker-compose -f dev.docker-compose.yml build --no-cache` in the terminal
-3. Once built, you must execute the command: `docker-compose -f dev.docker-compose.yml up --force-recreate` in the terminal
-
-NOTE: You have to be standing in the folder containing the: `dev.docker-compose.yml` and you need to install `Docker Desktop` if you are in Windows.
-
-### Pre-Commit for Development
-
-NOTE: Install **pre-commit** inside repository folder.
-
-1. Once you're inside the virtual environment, let's install the hooks specified in the pre-commit. Execute: `pre-commit install`
-2. Now every time you try to commit, the pre-commit lint will run. If you want to do it manually, you can run the command: `pre-commit run --all-files`
-
-### Create a Virtual Env for Pre-Commit and Tests (And other things)
-
-1. Join to the correct path of the clone
-2. Execute: `python -m venv venv`
-3. Execute in Windows: `venv\Scripts\activate`
-4. Execute in Linux/Mac: `source venv/bin/activate`
-5. Execute: `pip install -r requirements.txt`
-6. Execute: `pip install -r requirements.dev.txt`
-7. Execute: `pip install -r requirements.test.txt`
-8. Execute all the commands you want
-
-## Getting Started for Production
-
-1. Clone the repository
-2. Set your production environment variables in `.env` (see **Env Keys** section)
-3. Go to the repository folder and execute: `docker-compose -f prod.docker-compose.yml build --no-cache` in the terminal
-4. Once built, execute: `docker-compose -f prod.docker-compose.yml up -d` in the terminal
-
-### What's different from development
-
-|                | Development      | Production             |
-| -------------- | ---------------- | ---------------------- |
-| Server         | Flask dev server | Gunicorn (`wsgi.py`)   |
-| Debug mode     | `True`           | `False`                |
-| Docker image   | Full build       | Multi-stage slim image |
-| Container user | root             | `appuser` (non-root)   |
-
-### Gunicorn
-
-The production server is configured in `src/configs/gunicorn_config.py`:
-
-- **Workers**: `cpu_count * 2 + 1` (auto-scaled to the host machine)
-- **Threads**: `2` per worker
-- **Timeout**: `120s` (request), `30s` (graceful shutdown)
-- **Logs**: stdout/stderr (compatible with Docker log drivers)
-
-### Security considerations before deploying
-
-- Run `pip-audit -r requirements.txt` to check for known vulnerabilities in production dependencies
-- The production Dockerfile runs the app as a non-root user (`appuser`) — do not override this
-
 ## Description
 
 **Python Flask Api Boilerplate** is a production-ready starting point for building REST APIs with **Flask**, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project.
@@ -123,29 +67,43 @@ pytest-timeout==2.3.1
 pytest-xdist==3.5.0
 ```
 
-## Portfolio Link
+## Getting Started
 
-[`https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate)
+With the stack in mind, here's how to bring the project up locally. The recommended path is Docker; the local virtual environment is for running tooling that doesn't need the full container (pre-commit, tests, security audit).
 
-## Testing
+### With Docker
 
-1. Join to the correct path of the clone
+1. Clone the repository
+2. Copy `.env.example` to `.env` and adjust the values if needed (see [Env Keys](#env-keys))
+3. Stand inside the repository folder and execute: `docker-compose -f dev.docker-compose.yml build --no-cache`
+4. Once built, execute: `docker-compose -f dev.docker-compose.yml up --force-recreate`
+
+NOTE: You have to be standing in the folder containing `dev.docker-compose.yml` and you need to install **Docker Desktop** if you are on Windows.
+
+### Local Virtual Environment
+
+Used by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Security Audit](#security-audit) when you want to run them outside the container.
+
+1. Stand inside the repository folder
 2. Execute: `python -m venv venv`
-3. Execute in Windows: `venv\Scripts\activate`
+3. Activate it:
+   - Windows: `venv\Scripts\activate`
+   - Linux/Mac: `source venv/bin/activate`
 4. Execute: `pip install -r requirements.txt`
-5. Execute: `pip install -r requirements.test.txt`
-6. Execute: `pytest --log-cli-level=INFO`
+5. Execute: `pip install -r requirements.dev.txt`
+6. Execute: `pip install -r requirements.test.txt`
 
-## Security Audit
+### Pre-Commit for Development
 
-You can check your dependencies for known vulnerabilities using **pip-audit**.
+Pre-commit runs Ruff lint/format on every commit. Install it inside the activated virtual environment.
 
-1. Go to the repository folder
-2. Activate your virtual environment
-3. Execute: `pip install -r requirements.dev.txt`
-4. Execute: `pip-audit -r requirements.txt`
+1. Activate the virtual environment (see [Local Virtual Environment](#local-virtual-environment))
+2. Execute: `pre-commit install`
+3. Every commit will now run the configured hooks. To run them manually across the repo: `pre-commit run --all-files`
 
 ## Env Keys
+
+The Docker setup and the Flask app read configuration from `.env`. These are the variables it expects.
 
 1. `TZ`: Refers to the timezone setting for the container.
 2. `HOST`: Refers to the network interface where the backend API listens (e.g., 0.0.0.0 to allow external connections).
@@ -159,6 +117,8 @@ PORT=5050
 ```
 
 ## Project Structure
+
+With the app running, here's how the codebase is organized. The folder layout mirrors the layered architecture described in the next section.
 
 ```
 python-flask-api-boilerplate/
@@ -464,7 +424,7 @@ class ProductionConfig(DefaultConfig):
 
 ## API Endpoints
 
-The boilerplate ships with a fully functional `note` resource that manages named entries stored **in memory**. It seeds two default entries on startup and demonstrates the complete CRUD flow through the layered architecture.
+To see the layers above in action, here are the endpoints exposed by the example resource. The `note` resource ships with two seeded entries on startup and demonstrates the complete CRUD flow through the layered architecture.
 
 All endpoints are prefixed with `/api/v1/notes`.
 
@@ -565,6 +525,75 @@ All endpoints are prefixed with `/api/v1/notes`.
 
 > **Note on persistence:** The in-memory store resets every time the app restarts. To persist data, replace the `_store` list in `src/data_access/note_dao.py` with a real database client — the service and controller layers require zero changes.
 
+## Testing
+
+Once the API is up, you can verify it end-to-end with the test suite.
+
+1. Activate the virtual environment (see [Local Virtual Environment](#local-virtual-environment))
+2. Execute: `pytest --log-cli-level=INFO`
+
+## Security Audit
+
+Beyond functional tests, scan production dependencies for known vulnerabilities using **pip-audit**.
+
+1. Activate the virtual environment (see [Local Virtual Environment](#local-virtual-environment))
+2. Execute: `pip-audit -r requirements.txt`
+
+## Build
+
+When tests are green and the dependency audit is clean, build the Docker image you intend to ship.
+
+### Development image
+
+```
+docker-compose -f dev.docker-compose.yml build --no-cache
+```
+
+### Production image
+
+```
+docker-compose -f prod.docker-compose.yml build --no-cache
+```
+
+NOTE: You must stand in the folder containing the corresponding compose file. Install **Docker Desktop** if you are on Windows.
+
+## Production
+
+With the image built, follow this checklist to bring the API up in production. This section does not duplicate prior steps — it links to them.
+
+1. Set your production environment variables in `.env` (see [Env Keys](#env-keys))
+2. Run the test suite (see [Testing](#testing))
+3. Run the dependency audit (see [Security Audit](#security-audit))
+4. Build the production image (see [Build → Production image](#production-image))
+5. Start the container: `docker-compose -f prod.docker-compose.yml up -d`
+
+### What's different from development
+
+|                | Development      | Production             |
+| -------------- | ---------------- | ---------------------- |
+| Server         | Flask dev server | Gunicorn (`wsgi.py`)   |
+| Debug mode     | `True`           | `False`                |
+| Docker image   | Full build       | Multi-stage slim image |
+| Container user | root             | `appuser` (non-root)   |
+
+### Gunicorn
+
+The production server is configured in `src/configs/gunicorn_config.py`:
+
+- **Workers**: `cpu_count * 2 + 1` (auto-scaled to the host machine)
+- **Threads**: `2` per worker
+- **Timeout**: `120s` (request), `30s` (graceful shutdown)
+- **Logs**: stdout/stderr (compatible with Docker log drivers)
+
+### Security considerations
+
+- The production Dockerfile runs the app as a non-root user (`appuser`) — do not override this.
+- Re-run the [Security Audit](#security-audit) before every deploy, not only on the first one.
+
 ## Known Issues
 
 None at the moment.
+
+## Portfolio Link
+
+[`https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate)
