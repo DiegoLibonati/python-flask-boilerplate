@@ -3,7 +3,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.constants.codes import CODE_ALREADY_EXISTS_NOTE, CODE_NOT_FOUND_NOTE, CODE_SUCCESS_ADD_NOTE, CODE_SUCCESS_DELETE_NOTE, CODE_SUCCESS_GET_NOTES
+from src.constants.codes import (
+    CODE_ALREADY_EXISTS_NOTE,
+    CODE_NOT_FOUND_NOTE,
+    CODE_SUCCESS_ADD_NOTE,
+    CODE_SUCCESS_DELETE_NOTE,
+    CODE_SUCCESS_GET_NOTES,
+)
 from src.constants.messages import (
     MESSAGE_ALREADY_EXISTS_NOTE,
     MESSAGE_NOT_FOUND_NOTE,

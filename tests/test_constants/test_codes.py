@@ -7,10 +7,13 @@ from src.constants.codes import (
     CODE_ERROR_INTERNAL_SERVER,
     CODE_ERROR_PYDANTIC,
     CODE_NOT_FOUND_NOTE,
+    CODE_NOT_FOUND_ROUTE,
     CODE_NOT_VALID_INTEGER,
     CODE_SUCCESS_ADD_NOTE,
     CODE_SUCCESS_DELETE_NOTE,
     CODE_SUCCESS_GET_NOTES,
+    CODE_SUCCESS_HEALTH,
+    CODE_SUCCESS_READY,
 )
 
 
@@ -45,6 +48,15 @@ class TestCodes:
 
     def test_not_found_note_is_string(self) -> None:
         assert isinstance(CODE_NOT_FOUND_NOTE, str)
+
+    def test_not_found_route_is_string(self) -> None:
+        assert isinstance(CODE_NOT_FOUND_ROUTE, str)
+
+    def test_success_health_is_string(self) -> None:
+        assert isinstance(CODE_SUCCESS_HEALTH, str)
+
+    def test_success_ready_is_string(self) -> None:
+        assert isinstance(CODE_SUCCESS_READY, str)
 
     def test_all_codes_are_unique(self) -> None:
         codes: list[str] = [

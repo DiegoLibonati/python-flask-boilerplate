@@ -16,7 +16,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 
 
-def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
+def exceptions_decorator(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
@@ -27,6 +27,6 @@ def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
                 code=CODE_ERROR_PYDANTIC,
                 message=MESSAGE_ERROR_PYDANTIC,
                 payload={"details": e.errors()},
-            )
+            ) from e
 
     return wrapper

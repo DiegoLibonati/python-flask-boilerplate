@@ -7,10 +7,13 @@ from src.constants.messages import (
     MESSAGE_ERROR_INTERNAL_SERVER,
     MESSAGE_ERROR_PYDANTIC,
     MESSAGE_NOT_FOUND_NOTE,
+    MESSAGE_NOT_FOUND_ROUTE,
     MESSAGE_NOT_VALID_INTEGER,
     MESSAGE_SUCCESS_ADD_NOTE,
     MESSAGE_SUCCESS_DELETE_NOTE,
     MESSAGE_SUCCESS_GET_NOTES,
+    MESSAGE_SUCCESS_HEALTH,
+    MESSAGE_SUCCESS_READY,
 )
 
 
@@ -45,6 +48,15 @@ class TestMessages:
 
     def test_not_found_note_is_string(self) -> None:
         assert isinstance(MESSAGE_NOT_FOUND_NOTE, str)
+
+    def test_not_found_route_is_string(self) -> None:
+        assert isinstance(MESSAGE_NOT_FOUND_ROUTE, str)
+
+    def test_success_health_is_string(self) -> None:
+        assert isinstance(MESSAGE_SUCCESS_HEALTH, str)
+
+    def test_success_ready_is_string(self) -> None:
+        assert isinstance(MESSAGE_SUCCESS_READY, str)
 
     def test_all_messages_are_non_empty(self) -> None:
         messages: list[str] = [

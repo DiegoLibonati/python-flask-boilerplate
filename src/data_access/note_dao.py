@@ -30,7 +30,6 @@ class NoteDAO:
 
     @staticmethod
     def delete_one_by_id(_id: str) -> bool:
-        global _store
         original_len = len(_store)
-        _store = [n for n in _store if n["_id"] != _id]
+        _store[:] = [n for n in _store if n["_id"] != _id]
         return len(_store) < original_len

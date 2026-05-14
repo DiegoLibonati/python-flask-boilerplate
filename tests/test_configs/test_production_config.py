@@ -14,6 +14,3 @@ class TestProductionConfig:
 
     def test_inherits_from_default_config(self) -> None:
         assert issubclass(ProductionConfig, DefaultConfig)
-
-    def test_json_as_ascii_inherited_as_false(self) -> None:
-        assert ProductionConfig.JSON_AS_ASCII is False

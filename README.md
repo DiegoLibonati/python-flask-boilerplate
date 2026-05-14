@@ -21,13 +21,14 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 **What it includes:**
 
 - **Layered architecture** enforced by convention: Blueprint → Controller → Service → DAO → In-Memory Store. Each layer has a single responsibility and only talks to the one directly below it.
-- **Pydantic v2** for request validation and data serialization, with a custom `exceptions_handler` decorator that automatically converts `ValidationError` into structured JSON API responses — no try/catch boilerplate in controllers.
+- **Pydantic v2** for request validation and data serialization, with a custom `exceptions_decorator` decorator that automatically converts `ValidationError` into structured JSON API responses — no try/catch boilerplate in controllers.
 - **Custom exception hierarchy** (`ValidationAPIError`, `NotFoundAPIError`, `ConflictAPIError`, `InternalAPIError`) that produces consistent error responses across the entire API.
 - **Environment-based configuration** using a `DefaultConfig` base class extended by `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig`, loaded dynamically by the app factory.
 - **Docker** setup for development and production, with a multi-stage Dockerfile for slim production images.
 - **Gunicorn** as the production WSGI server, configured via `gunicorn_config.py`.
-- **Ruff** for fast linting and formatting, enforced automatically via **pre-commit** hooks on every commit.
+- **Ruff** for fast linting and formatting, and **mypy** for static type checking, both enforced automatically via **pre-commit** hooks on every commit.
 - **pip-audit** integration for scanning production dependencies against known vulnerability databases.
+- **GitHub Actions CI** pipeline that runs lint, type checking, security audit, and tests on every push and pull request.
 - **pytest** configured and organized to mirror the `src/` structure.
 - **Startup initialization** layer (`src/startup/`) for seeding default data when the app boots.
 
@@ -41,7 +42,7 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 
 ## Libraries used
 
-#### Requirements.txt
+#### Runtime (`[project.dependencies]`)
 
 ```
 flask==3.1.3
@@ -49,15 +50,16 @@ pydantic==2.11.9
 gunicorn==23.0.0
 ```
 
-#### Requirements.dev.txt
+#### Dev (`[project.optional-dependencies]` dev)
 
 ```
 pre-commit==4.3.0
 pip-audit==2.7.3
 ruff==0.11.12
+mypy==1.13.0
 ```
 
-#### Requirements.test.txt
+#### Test (`[project.optional-dependencies]` test)
 
 ```
 pytest==8.4.2
@@ -95,7 +97,7 @@ Used by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Sec
 
 ### Pre-Commit for Development
 
-Pre-commit runs Ruff lint/format on every commit. Install it inside the activated virtual environment.
+Pre-commit runs Ruff lint/format and mypy type checking on every commit. Install it inside the activated virtual environment.
 
 1. Activate the virtual environment (see [Local Virtual Environment](#local-virtual-environment))
 2. Execute: `pre-commit install`
@@ -122,8 +124,12 @@ With the app running, here's how the codebase is organized. The folder layout mi
 
 ```
 python-flask-api-boilerplate/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── src/
 │   ├── blueprints/
+│   │   ├── health_bp.py
 │   │   ├── routes.py
 │   │   └── v1/
 │   │       └── note_bp.py
@@ -150,7 +156,7 @@ python-flask-api-boilerplate/
 │   │   └── init_notes.py
 │   └── utils/
 │       ├── exceptions.py
-│       ├── exceptions_handler.py
+│       ├── exceptions_decorator.py
 │       └── helpers.py
 ├── tests/
 │   └── __init__.py
@@ -164,7 +170,7 @@ python-flask-api-boilerplate/
 ├── requirements.test.txt
 ├── requirements.dev.txt
 ├── pyproject.toml
-├── .env
+├── .editorconfig
 ├── .env.example
 ├── .gitignore
 ├── .pre-commit-config.yaml
@@ -180,7 +186,7 @@ python-flask-api-boilerplate/
 7. `models` -> Defines **Pydantic models** for data validation and serialization.
 8. `constants` -> Holds **static values** like error codes, user messages, and default data.
 9. `startup` -> Contains **initialization logic** executed when the application starts, such as seeding default data.
-10. `utils` -> Contains **shared utilities** including custom exceptions, error handling decorators, and helper functions.
+10. `utils` -> Contains **shared utilities** including custom exceptions, the `exceptions_decorator` error handling decorator, and helper functions.
 11. `tests` -> Contains **tests** organized to mirror the `src/` structure.
 12. `app.py` -> The **application factory**. Creates and configures the Flask app instance using the Factory pattern.
 13. `wsgi.py` -> The **production entry point** for WSGI servers like Gunicorn.
@@ -261,14 +267,21 @@ In-Memory Store (_store list)   →  Stores/retrieves data
 **Location**: `app.py`
 
 ```python
-def create_app(config_name="development") -> Flask:
+ALLOWED_CONFIGS = {"development", "production", "testing"}
+
+def create_app(config_name: str = "development") -> Flask:
+    if config_name not in ALLOWED_CONFIGS:
+        raise ValueError(f"Invalid config_name: {config_name!r}.")
+
     app = Flask(__name__)
 
     config_module = importlib.import_module(f"src.configs.{config_name}_config")
     app.config.from_object(config_module.__dict__[f"{config_name.capitalize()}Config"])
 
     register_routes(app)
-    add_default_notes()
+
+    if app.config.get("SEED_DEFAULTS", False):
+        add_default_notes()
 
     return app
 
@@ -347,10 +360,10 @@ class NoteService:
 
 **Purpose**: Adds behavior to functions without modifying them. Wraps functions to extend functionality.
 
-**Location**: `src/utils/exceptions_handler.py`
+**Location**: `src/utils/exceptions_decorator.py`
 
 ```python
-def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
+def exceptions_decorator(fn: Callable[P, R]) -> Callable[P, R]:
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         try:
@@ -361,7 +374,7 @@ def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
                 code=CODE_ERROR_PYDANTIC,
                 message=MESSAGE_ERROR_PYDANTIC,
                 payload={"details": e.errors()},
-            )
+            ) from e
 
     return wrapper
 ```
@@ -369,16 +382,14 @@ def exceptions_handler(fn: Callable[P, R]) -> Callable[P, R]:
 **Usage in Controller**:
 
 ```python
-@exceptions_handler
-def alive() -> Response:
+@exceptions_decorator
+def alive() -> ResponseReturnValue:
     response = {"message": "I am Alive!"}
     return jsonify(response), 200
 
 
-@exceptions_handler
-def create_note() -> Response:
-    # If ValidationError occurs, it's automatically caught and
-    # converted to a structured API error response
+@exceptions_decorator
+def create_note() -> ResponseReturnValue:
     body = request.get_json() or {}
     note = NoteModel(**body)
     data = NoteService.add_note(note)
@@ -398,14 +409,16 @@ def create_note() -> Response:
 class DefaultConfig:
     TZ = os.getenv("TZ", "America/Argentina/Buenos_Aires")
     HOST = os.getenv("HOST", "0.0.0.0")
-    PORT = os.getenv("PORT", 5000)
+    PORT = int(os.getenv("PORT", "5000"))
     DEBUG = False
     TESTING = False
+    SEED_DEFAULTS = False
 
 
 # src/configs/development_config.py - Customizes for development
 class DevelopmentConfig(DefaultConfig):
     DEBUG = True
+    SEED_DEFAULTS = True
 
 
 # src/configs/testing_config.py - Customizes for testing
@@ -426,9 +439,28 @@ class ProductionConfig(DefaultConfig):
 
 To see the layers above in action, here are the endpoints exposed by the example resource. The `note` resource ships with two seeded entries on startup and demonstrates the complete CRUD flow through the layered architecture.
 
-All endpoints are prefixed with `/api/v1/notes`.
+The note resource endpoints are prefixed with `/api/v1/notes`. The health endpoints are top-level (no version prefix).
 
-### Health
+### Application Health
+
+| Method | Path      | Description                              |
+| ------ | --------- | ---------------------------------------- |
+| `GET`  | `/health` | Liveness check — confirms the app is up  |
+| `GET`  | `/ready`  | Readiness check — confirms the app can serve requests |
+
+**Response 200 — `/health`:**
+
+```json
+{ "code": "SUCCESS_HEALTH", "message": "The application is healthy." }
+```
+
+**Response 200 — `/ready`:**
+
+```json
+{ "code": "SUCCESS_READY", "message": "The application is ready to serve requests." }
+```
+
+### Note Resource Health
 
 | Method | Path     | Description                               |
 | ------ | -------- | ----------------------------------------- |
@@ -537,7 +569,7 @@ Once the API is up, you can verify it end-to-end with the test suite.
 Beyond functional tests, scan production dependencies for known vulnerabilities using **pip-audit**.
 
 1. Activate the virtual environment (see [Local Virtual Environment](#local-virtual-environment))
-2. Execute: `pip-audit -r requirements.txt`
+2. Execute: `pip-audit --skip-editable`
 
 ## Build
 

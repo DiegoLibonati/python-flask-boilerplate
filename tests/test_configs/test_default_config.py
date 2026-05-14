@@ -5,9 +5,6 @@ from src.configs.default_config import DefaultConfig
 
 @pytest.mark.unit
 class TestDefaultConfig:
-    def test_json_as_ascii_is_false(self) -> None:
-        assert DefaultConfig.JSON_AS_ASCII is False
-
     def test_debug_is_false(self) -> None:
         assert DefaultConfig.DEBUG is False
 

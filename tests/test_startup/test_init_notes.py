@@ -17,12 +17,18 @@ class TestAddDefaultNotes:
         mock_add.assert_not_called()
 
     def test_adds_default_notes_when_store_is_empty(self) -> None:
-        with patch("src.startup.init_notes.NoteService.get_all_notes", return_value=[]), patch("src.startup.init_notes.NoteService.add_note") as mock_add:
+        with (
+            patch("src.startup.init_notes.NoteService.get_all_notes", return_value=[]),
+            patch("src.startup.init_notes.NoteService.add_note") as mock_add,
+        ):
             add_default_notes()
         assert mock_add.call_count == len(DEFAULT_NOTES)
 
     def test_adds_exactly_two_default_notes(self) -> None:
-        with patch("src.startup.init_notes.NoteService.get_all_notes", return_value=[]), patch("src.startup.init_notes.NoteService.add_note") as mock_add:
+        with (
+            patch("src.startup.init_notes.NoteService.get_all_notes", return_value=[]),
+            patch("src.startup.init_notes.NoteService.add_note") as mock_add,
+        ):
             add_default_notes()
         assert mock_add.call_count == 2
 
