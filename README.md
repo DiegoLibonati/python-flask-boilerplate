@@ -93,9 +93,9 @@ Used by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Sec
 3. Activate it:
    - Windows: `venv\Scripts\activate`
    - Linux/Mac: `source venv/bin/activate`
-4. Execute: `pip install -r requirements.txt`
-5. Execute: `pip install -r requirements.dev.txt`
-6. Execute: `pip install -r requirements.test.txt`
+4. Execute: `pip install -e .`
+5. Execute: `pip install -e ".[dev]"`
+6. Execute: `pip install -e ".[test]"`
 
 ### Pre-Commit for Development
 
