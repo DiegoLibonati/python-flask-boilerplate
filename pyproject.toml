@@ -24,6 +24,9 @@ test = [
     "pytest-xdist==3.5.0",
 ]
 
+[tool.distutils.egg_info]
+egg_base = "."
+
 [tool.pytest.ini_options]
 pythonpath = "."
 testpaths = ["tests"]

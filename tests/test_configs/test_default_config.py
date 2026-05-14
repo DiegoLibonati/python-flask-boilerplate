@@ -25,3 +25,12 @@ class TestDefaultConfig:
 
     def test_tz_is_non_empty(self) -> None:
         assert DefaultConfig.TZ != ""
+
+    def test_has_max_content_length_attribute(self) -> None:
+        assert hasattr(DefaultConfig, "MAX_CONTENT_LENGTH")
+
+    def test_max_content_length_is_int(self) -> None:
+        assert isinstance(DefaultConfig.MAX_CONTENT_LENGTH, int)
+
+    def test_max_content_length_is_positive(self) -> None:
+        assert DefaultConfig.MAX_CONTENT_LENGTH > 0

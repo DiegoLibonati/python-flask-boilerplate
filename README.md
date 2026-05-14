@@ -36,7 +36,7 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 
 ## Technologies used
 
-1. Python -> Flask
+1. Python 3.11 -> Flask
 2. Docker
 3. Gunicorn
 
@@ -86,6 +86,8 @@ NOTE: You have to be standing in the folder containing `dev.docker-compose.yml` 
 
 Used by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Security Audit](#security-audit) when you want to run them outside the container.
 
+> **Python version:** The project requires **Python 3.11**. The `.python-version` file pins this for tools like `pyenv`. Make sure your local interpreter matches before creating the virtual environment.
+
 1. Stand inside the repository folder
 2. Execute: `python -m venv venv`
 3. Activate it:
@@ -110,12 +112,17 @@ The Docker setup and the Flask app read configuration from `.env`. These are the
 1. `TZ`: Refers to the timezone setting for the container.
 2. `HOST`: Refers to the network interface where the backend API listens (e.g., 0.0.0.0 to allow external connections).
 3. `PORT`: Refers to the port on which the backend API is exposed.
+4. `MAX_CONTENT_LENGTH`: Maximum allowed request body size in bytes (default: `1048576` = 1 MB). Requests exceeding this limit are rejected by Flask before reaching any controller.
+5. `SEED_DEFAULT_DATA`: When `true`, the app seeds default data into the in-memory store on startup. Useful for development and manual testing.
 
 ```ts
 TZ=America/Argentina/Buenos_Aires
 
 HOST=0.0.0.0
 PORT=5050
+MAX_CONTENT_LENGTH=1048576
+
+SEED_DEFAULT_DATA=false
 ```
 
 ## Project Structure
@@ -129,9 +136,9 @@ python-flask-api-boilerplate/
 │       └── ci.yml
 ├── src/
 │   ├── blueprints/
-│   │   ├── health_bp.py
 │   │   ├── routes.py
 │   │   └── v1/
+│   │       ├── health_bp.py
 │   │       └── note_bp.py
 │   ├── configs/
 │   │   ├── default_config.py
@@ -141,6 +148,7 @@ python-flask-api-boilerplate/
 │   │   ├── gunicorn_config.py
 │   │   └── logger_config.py
 │   ├── controllers/
+│   │   ├── health_controller.py
 │   │   └── note_controller.py
 │   ├── services/
 │   │   └── note_service.py
@@ -174,6 +182,7 @@ python-flask-api-boilerplate/
 ├── .env.example
 ├── .gitignore
 ├── .pre-commit-config.yaml
+├── .python-version
 └── README.md
 ```
 
@@ -439,25 +448,18 @@ class ProductionConfig(DefaultConfig):
 
 To see the layers above in action, here are the endpoints exposed by the example resource. The `note` resource ships with two seeded entries on startup and demonstrates the complete CRUD flow through the layered architecture.
 
-The note resource endpoints are prefixed with `/api/v1/notes`. The health endpoints are top-level (no version prefix).
+The note resource endpoints are prefixed with `/api/v1/notes`. The health endpoint is prefixed with `/api/v1/health`.
 
 ### Application Health
 
-| Method | Path      | Description                              |
-| ------ | --------- | ---------------------------------------- |
-| `GET`  | `/health` | Liveness check — confirms the app is up  |
-| `GET`  | `/ready`  | Readiness check — confirms the app can serve requests |
+| Method | Path             | Description                             |
+| ------ | ---------------- | --------------------------------------- |
+| `GET`  | `/api/v1/health` | Liveness check — confirms the app is up |
 
-**Response 200 — `/health`:**
+**Response 200 — `/api/v1/health`:**
 
 ```json
 { "code": "SUCCESS_HEALTH", "message": "The application is healthy." }
-```
-
-**Response 200 — `/ready`:**
-
-```json
-{ "code": "SUCCESS_READY", "message": "The application is ready to serve requests." }
 ```
 
 ### Note Resource Health
@@ -605,7 +607,7 @@ With the image built, follow this checklist to bring the API up in production. T
 | -------------- | ---------------- | ---------------------- |
 | Server         | Flask dev server | Gunicorn (`wsgi.py`)   |
 | Debug mode     | `True`           | `False`                |
-| Docker image   | Full build       | Multi-stage slim image |
+| Docker image   | Single-stage slim image | Multi-stage slim image |
 | Container user | root             | `appuser` (non-root)   |
 
 ### Gunicorn
