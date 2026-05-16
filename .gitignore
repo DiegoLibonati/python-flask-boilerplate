@@ -21,7 +21,6 @@ build/
 htmlcov/
 coverage.xml
 
-.vscode/
 .idea/
 *.swp
 *.swo

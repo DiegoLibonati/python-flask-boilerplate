@@ -591,6 +591,57 @@ docker-compose -f prod.docker-compose.yml build --no-cache
 
 NOTE: You must stand in the folder containing the corresponding compose file. Install **Docker Desktop** if you are on Windows.
 
+## Continuous Integration
+
+The repository ships with a **GitHub Actions** pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs automatically on every `push` and `pull_request` targeting the `main` branch.
+
+### Pipeline overview
+
+```
+                      ┌─── PR or push to main ───┐
+                      ▼                          ▼
+┌──────────────────────┐  ┌──────────────────┐  ┌──────────────────────┐
+│   lint-and-audit     │─▶│       test       │─▶│     docker-build     │
+│ ruff · mypy · audit  │  │      pytest      │  │ dev image · prod img │
+└──────────────────────┘  └──────────────────┘  └──────────────────────┘
+```
+
+### Validation jobs (run on every PR and push)
+
+1. **`lint-and-audit`** — `ruff check .`, `ruff format --check .`, `mypy --config-file=pyproject.toml .`, `pip-audit --skip-editable`.
+2. **`test`** — installs the `test` extra and runs `python -m pytest --tb=short`.
+3. **`docker-build`** — matrix job that runs Docker Buildx against `Dockerfile.development` (tagged `app:dev`) and `Dockerfile.production` (tagged `app:prod`). Images are built but not pushed — this is a smoke test that both Dockerfiles still build from a clean context.
+
+Each job runs sequentially: `lint-and-audit` → `test` → `docker-build`. If a stage fails, the following stages are skipped.
+
+### Where the build outputs live
+
+| Output                          | Location                          |
+| ------------------------------- | --------------------------------- |
+| Validation logs (lint, tests)   | **Actions** tab on GitHub         |
+| Docker images (dev & prod)      | Ephemeral, inside the runner      |
+
+> **Note:** The Docker images built in CI are not pushed to any registry. They exist only to verify the Dockerfiles still build. If you need to publish images (e.g., to GHCR, Docker Hub, ECR), extend `docker-build` with a login step and `push: true`.
+
+### Running the same checks locally
+
+```bash
+# lint-and-audit
+ruff check .
+ruff format --check .
+mypy --config-file=pyproject.toml .
+pip-audit --skip-editable
+
+# test
+python -m pytest --tb=short
+
+# docker-build (development image)
+docker build -f Dockerfile.development -t app:dev .
+
+# docker-build (production image)
+docker build -f Dockerfile.production -t app:prod .
+```
+
 ## Production
 
 With the image built, follow this checklist to bring the API up in production. This section does not duplicate prior steps — it links to them.
