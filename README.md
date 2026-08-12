@@ -23,7 +23,7 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 - **Layered architecture** enforced by convention: Blueprint → Controller → Service → DAO → In-Memory Store. Each layer has a single responsibility and only talks to the one directly below it.
 - **Pydantic v2** for request validation and data serialization, with a custom `exceptions_decorator` decorator that automatically converts `ValidationError` into structured JSON API responses — no try/catch boilerplate in controllers.
 - **Custom exception hierarchy** (`ValidationAPIError`, `NotFoundAPIError`, `ConflictAPIError`, `InternalAPIError`) that produces consistent error responses across the entire API.
-- **Environment-based configuration** using a `DefaultConfig` base class extended by `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig`, loaded dynamically by the app factory.
+- **Environment-based configuration** using a `DefaultConfig` base class extended by `DevelopmentConfig`, `TestingConfig`, and `ProductionConfig`, loaded dynamically by the app factory. `.env` is loaded automatically via `python-dotenv`, so the app runs the same with or without Docker.
 - **Docker** setup for development and production, with a multi-stage Dockerfile for slim production images.
 - **Gunicorn** as the production WSGI server, configured via `gunicorn_config.py`.
 - **Ruff** for fast linting and formatting, and **mypy** for static type checking, both enforced automatically via **pre-commit** hooks on every commit.
@@ -48,6 +48,7 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 flask==3.1.3
 pydantic==2.11.9
 gunicorn==23.0.0
+python-dotenv==1.2.2
 ```
 
 #### Dev (`[project.optional-dependencies]` dev)
@@ -71,7 +72,7 @@ pytest-xdist==3.5.0
 
 ## Getting Started
 
-With the stack in mind, here's how to bring the project up locally. The recommended path is Docker; the local virtual environment is for running tooling that doesn't need the full container (pre-commit, tests, security audit).
+With the stack in mind, here's how to bring the project up locally. You can run it with Docker (recommended for parity with production) or directly on your machine with the local virtual environment — both read the same `.env` file, loaded automatically via `python-dotenv`.
 
 ### With Docker
 
@@ -82,9 +83,18 @@ With the stack in mind, here's how to bring the project up locally. The recommen
 
 NOTE: You have to be standing in the folder containing `dev.docker-compose.yml` and you need to install **Docker Desktop** if you are on Windows.
 
+### Without Docker
+
+1. Clone the repository
+2. Copy `.env.example` to `.env` and adjust the values if needed (see [Env Keys](#env-keys))
+3. Set up the [Local Virtual Environment](#local-virtual-environment)
+4. With the virtual environment active, execute: `python app.py`
+
+The app loads `.env` automatically through `python-dotenv`, so the dev server starts on the configured `HOST`/`PORT` without any container. Real environment variables always take precedence over `.env` values.
+
 ### Local Virtual Environment
 
-Used by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Security Audit](#security-audit) when you want to run them outside the container.
+Used to run the app [without Docker](#without-docker) and by [Pre-Commit](#pre-commit-for-development), [Testing](#testing), and [Security Audit](#security-audit) when you want to run them outside the container.
 
 > **Python version:** The project requires **Python 3.11**. The `.python-version` file pins this for tools like `pyenv`. Make sure your local interpreter matches before creating the virtual environment.
 
@@ -107,7 +117,7 @@ Pre-commit runs Ruff lint/format and mypy type checking on every commit. Install
 
 ## Env Keys
 
-The Docker setup and the Flask app read configuration from `.env`. These are the variables it expects.
+The app reads configuration from `.env` whether it runs inside Docker (via `env_file` in the compose files) or directly on your machine (via `python-dotenv`, loaded in `src/configs/default_config.py` and `src/configs/gunicorn_config.py`). Values already present in the real environment are never overridden by `.env`. These are the variables it expects.
 
 1. `TZ`: Refers to the timezone setting for the container.
 2. `HOST`: Refers to the network interface where the backend API listens (e.g., 0.0.0.0 to allow external connections).
