@@ -13,7 +13,7 @@ class TestSetupLogger:
 
     def test_default_name_is_project_name(self) -> None:
         logger: logging.Logger = setup_logger()
-        assert logger.name == "python-flask-api-boilerplate"
+        assert logger.name == "python-flask-boilerplate"
 
     def test_custom_name_is_applied(self) -> None:
         logger: logging.Logger = setup_logger("my-custom-logger")

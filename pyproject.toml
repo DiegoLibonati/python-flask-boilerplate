@@ -1,7 +1,7 @@
 [project]
-name = "python-flask-api-boilerplate"
+name = "python-flask-boilerplate"
 version = "1.0.0"
-description = "Python Flask Api Boilerplate is a production-ready starting point for building REST APIs with Flask, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project."
+description = "Python Flask Boilerplate is a production-ready starting point for building REST APIs with Flask, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project."
 requires-python = ">=3.11"
 dependencies = [
     "flask==3.1.3",

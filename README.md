@@ -1,4 +1,4 @@
-# Python Flask Api Boilerplate
+# Python Flask Boilerplate
 
 ## Educational Purpose
 
@@ -6,11 +6,11 @@ This project was created primarily for **educational and learning purposes**.
 While it is well-structured and could technically be used in production, it is **not intended for commercialization**.  
 The main goal is to explore and demonstrate best practices, patterns, and technologies in software development.
 
-> **Want a MongoDB version?** Check out [`python-flask-mongo-api-boilerplate`](https://github.com/DiegoLibonati/python-flask-mongo-api-boilerplate) — the same boilerplate adapted to work with MongoDB and PyMongo.
+> **Want a MongoDB version?** Check out [`python-flask-mongodb-boilerplate`](https://github.com/DiegoLibonati/python-flask-mongodb-boilerplate) — the same boilerplate adapted to work with MongoDB and PyMongo.
 
 ## Description
 
-**Python Flask Api Boilerplate** is a production-ready starting point for building REST APIs with **Flask**, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project.
+**Python Flask Boilerplate** is a production-ready starting point for building REST APIs with **Flask**, designed to eliminate the repetitive setup and architectural decisions that come with every new backend project.
 
 **What it is:** A starting point — not a framework — for developers who want to spin up a Flask API without rebuilding the same infrastructure from scratch each time. Every layer, pattern, and tooling choice is already wired together and working.
 
@@ -140,7 +140,7 @@ SEED_DEFAULT_DATA=false
 With the app running, here's how the codebase is organized. The folder layout mirrors the layered architecture described in the next section.
 
 ```
-python-flask-api-boilerplate/
+python-flask-boilerplate/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
@@ -691,4 +691,4 @@ None at the moment.
 
 ## Portfolio Link
 
-[`https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-api-boilerplate)
+[`https://www.diegolibonati.com.ar/#/project/python-flask-boilerplate`](https://www.diegolibonati.com.ar/#/project/python-flask-boilerplate)
